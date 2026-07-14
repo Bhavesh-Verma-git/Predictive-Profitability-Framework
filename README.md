@@ -29,43 +29,29 @@ Effective Points Multiplier = (0.25 × 5×) + (0.75 × 1×) = 2.0×
 
 ## 🏗️ Architecture Overview
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                      RAW DATA (500k Customers)                        │
-│              23 anonymized features: f1 (revolving balance) → f23    │
-└────────────────────┬─────────────────────────────────────────────────┘
-                     │
-          ┌──────────▼──────────┐
-          │   DATA PIPELINE     │
-          │  data_pipeline.py   │
-          │  • Dataset A: zero-fill imputation (for formula)            │
-          │  • Dataset B: raw NaN preserved   (for ML)                  │
-          └──────────┬──────────┘
-                     │
-     ┌───────────────▼───────────────────┐
-     │     PSEUDO-LABEL GENERATION       │
-     │        pseudo_label.py            │
-     │  Business Formula → Annual Profit │
-     │  Top 100k (20%) → Pseudo-Label = 1│
-     └──────┬───────────────┬────────────┘
-            │               │
-   ┌────────▼──────┐  ┌─────▼───────────┐
-   │   LightGBM    │  │    XGBoost      │
-   │ lgbm_pipeline │  │ xgb_pipeline.py │
-   │ 5-Fold CV OOF │  │ 5-Fold CV OOF   │
-   └────────┬──────┘  └─────┬───────────┘
-            │               │
-     ┌──────▼───────────────▼──────────────┐
-     │     RANK NORMALIZATION ENSEMBLE      │
-     │        ensemble_pipeline.py          │
-     │   80% Formula + 10% LGBM + 10% XGB  │
-     └─────────────────┬────────────────────┘
-                       │
-             ┌─────────▼──────────┐
-             │  FINAL SUBMISSION  │
-             │ submission_pipeline│
-             │  Top 20% → Class 1 │
-             └────────────────────┘
+```mermaid
+flowchart TD
+    A["🗄️ RAW DATA — 500k Customers\n23 anonymized features: f1 → f23"] --> B
+
+    B["⚙️ data_pipeline.py\nDataset A · zero-fill imputation → for Formula\nDataset B · raw NaN preserved → for ML"] --> C
+
+    C["🏷️ pseudo_label.py\nBusiness Formula → Annual Profit Score\nTop 100k customers → Pseudo-Label = 1"] --> D
+    C --> E
+
+    D["🌿 lgbm_pipeline.py\nLightGBM · Leaf-wise GBDT\n5-Fold Stratified CV · OOF Predictions"] --> F
+    E["🌳 xgb_pipeline.py\nXGBoost · Depth-wise Trees\n5-Fold Stratified CV · OOF Predictions"] --> F
+
+    F["⚡ ensemble_pipeline.py\nRank Normalization\n80% Formula + 10% LightGBM + 10% XGBoost"] --> G
+
+    G["📤 submission_pipeline.py\nTop 20% → Class 1\nFinal Competition Submission"]
+
+    style A fill:#1e3a5f,stroke:#4a9eff,color:#e8f4fd,rx:8
+    style B fill:#1a3a2a,stroke:#4ade80,color:#d1fae5,rx:8
+    style C fill:#3a1a3a,stroke:#c084fc,color:#f3e8ff,rx:8
+    style D fill:#1a2a3a,stroke:#60a5fa,color:#dbeafe,rx:8
+    style E fill:#1a2a3a,stroke:#60a5fa,color:#dbeafe,rx:8
+    style F fill:#3a2a1a,stroke:#fb923c,color:#ffedd5,rx:8
+    style G fill:#1a3a1a,stroke:#34d399,color:#d1fae5,rx:8
 ```
 
 ---
